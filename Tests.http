@@ -1,0 +1,28 @@
+GET http://localhost:9876/ping
+
+> {%
+ client.test("Valid ping", () => {
+     client.assert(response.status === 200, "Response status is not 200");
+     client.assert(response.body === "OK", "Response body is not 'OK'");
+ });
+ %}
+
+###
+
+GET http://localhost:9876/api/game/start
+
+> {%
+    client.test("Invalid method is rejected", () =>
+    client.assert(response.status == 405, "Response is not 405 (method not allowed)"))
+%}
+
+###
+
+POST http://localhost:9876/api/game/start
+Content-Type: application/json
+
+{
+    "id": "0c575465-21f6-43c9-8a2d-bc64c3ae6241",
+    "url": "http://localhost:8795",
+    "message": "I will crush you!"
+}
