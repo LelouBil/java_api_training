@@ -32,25 +32,8 @@ public class MyHandler<T> implements HttpHandler {
         if (exchange.getRequestMethod().equals(method.name())) {
             InputStream requestBody = exchange.getRequestBody();
             String data = new String(requestBody.readAllBytes(), StandardCharsets.UTF_8);
-            MyResponseHandler resp;
             try {
-                System.out.printf("%s %s: %s%n", method.name(),path,data);
-                if (tClass == String.class) {
-                    //noinspection unchecked
-                    resp = handler.apply((T) data);
-                } else {
-                    ObjectMapper mapper = new ObjectMapper();
-
-                    T req = mapper.readValue(data, tClass);
-                    resp = handler.apply(req);
-                }
-                exchange.sendResponseHeaders(resp.status, resp.body.length());
-                Headers responseHeaders = exchange.getResponseHeaders();
-                responseHeaders.add("Content-Type", resp.contentType);
-                try (OutputStream os = exchange.getResponseBody()) {
-                    os.write(resp.body.getBytes());
-                }
-                System.out.printf(">\t%d\t%s%n", resp.status,resp.body);
+                computeHandler(exchange, data);
             } catch (JsonProcessingException e) {
                 e.printStackTrace();
                 exchange.sendResponseHeaders(400, 0);
@@ -60,6 +43,27 @@ public class MyHandler<T> implements HttpHandler {
             exchange.sendResponseHeaders(405, 0);
             exchange.getResponseBody().close();
         }
+    }
+
+    private void computeHandler(HttpExchange exchange, String data) throws IOException {
+        MyResponseHandler resp;
+        System.out.printf("%s %s: %s%n", method.name(),path, data);
+        if (tClass == String.class) {
+            //noinspection unchecked
+            resp = handler.apply((T) data);
+        } else {
+            ObjectMapper mapper = new ObjectMapper();
+
+            T req = mapper.readValue(data, tClass);
+            resp = handler.apply(req);
+        }
+        exchange.sendResponseHeaders(resp.status, resp.body.length());
+        Headers responseHeaders = exchange.getResponseHeaders();
+        responseHeaders.add("Content-Type", resp.contentType);
+        try (OutputStream os = exchange.getResponseBody()) {
+            os.write(resp.body.getBytes());
+        }
+        System.out.printf(">\t%d\t%s%n", resp.status,resp.body);
     }
 
     public enum Method {
