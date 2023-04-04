@@ -1,6 +1,8 @@
 package fr.lernejo.navy_battle;
 
 import com.sun.net.httpserver.HttpServer;
+import fr.lernejo.navy_battle.pojo.FireConsequence;
+import fr.lernejo.navy_battle.pojo.FireData;
 import fr.lernejo.navy_battle.pojo.GameDefinition;
 
 import java.io.IOException;
@@ -14,8 +16,8 @@ public class Launcher {
         try {
             int port = Integer.parseInt(args[0]);
             String url = null;
-            if(args.length >= 2) url = args[1];
-            startGame(port,url);
+            if (args.length >= 2) url = args[1];
+            startGame(port, url);
         } catch (NumberFormatException | ArrayIndexOutOfBoundsException e) {
             System.out.println("""
                 Usage: <port>
@@ -28,14 +30,30 @@ public class Launcher {
     private static void startGame(int port, String remoteUrl) throws IOException {
         HttpServer server = createServer(port);
         UUID id = UUID.randomUUID();
-        GameManager manager = new GameManager(id,"http://localhost:%d".formatted(port),remoteUrl);
+        GameManager manager = new GameManager(id, "http://localhost:%d".formatted(port), remoteUrl);
 
-        MyHandler.attach(server,
+        MyHandler.post(server,
             "/api/game/start",
-            HttpMethod.POST,
             GameDefinition.class,
             sgb -> MyResponseHandler
                 .json(202, manager.createGame(sgb))
+        );
+
+        MyHandler.get(server,
+            "/api/game/fire",
+            query -> {
+                String cell = query.get("cell");
+                if (cell != null) {
+                    try {
+                        FireConsequence consequence = manager.handleFire(cell);
+                        return MyResponseHandler.json(200, new FireData(consequence, manager.shipLeft()));
+                    } catch (IllegalArgumentException ignored){
+                        return MyResponseHandler.plain(400,"");
+                    }
+                } else {
+                    return MyResponseHandler.plain(400, "");
+                }
+            }
         );
 
 

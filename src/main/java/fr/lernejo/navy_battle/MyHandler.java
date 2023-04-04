@@ -11,7 +11,11 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 public class MyHandler<T> implements HttpHandler {
     private final HttpMethod httpMethod;
@@ -47,8 +51,21 @@ public class MyHandler<T> implements HttpHandler {
 
     private void computeHandler(HttpExchange exchange, String data) throws IOException {
         MyResponseHandler resp;
-        System.out.printf("%s %s: %s%n", httpMethod.name(),path, data);
-        if (tClass == String.class) {
+        System.out.printf("%s %s?%s: %s%n", httpMethod.name(), path, exchange.getRequestURI().getQuery(),  data);
+        if (tClass == null) {
+            Map<String, String> query =
+                Arrays.stream(exchange
+                        .getRequestURI()
+                        .getQuery()
+                        .split("&")
+                    )
+                    .map(e -> e.split("="))
+                    .collect(Collectors.toMap(e -> e[0], e -> e[1])
+                    );
+            //noinspection unchecked
+            resp = handler.apply((T) query);
+        }
+        else if (tClass == String.class) {
             //noinspection unchecked
             resp = handler.apply((T) data);
         } else {
@@ -70,8 +87,13 @@ public class MyHandler<T> implements HttpHandler {
         System.out.printf(">\t%d\t%s%n", resp.getStatus(), resp.getBody());
     }
 
-    public static <T> void attach(HttpServer server, String path, HttpMethod httpMethod, Class<T> tClass, Function<T, MyResponseHandler> handler) {
+    public static <T> void post(HttpServer server, String path, Class<T> tClass, Function<T, MyResponseHandler> handler) {
         server
-            .createContext(path, new MyHandler<>(httpMethod, path, tClass, handler));
+            .createContext(path, new MyHandler<>(HttpMethod.POST, path, tClass, handler));
+    }
+
+    public static void get(HttpServer server, String path, Function<Map<String, String>, MyResponseHandler> handler) {
+        server
+            .createContext(path, new MyHandler<>(HttpMethod.GET, path, null, handler));
     }
 }

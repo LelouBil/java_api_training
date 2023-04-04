@@ -26,3 +26,7 @@ Content-Type: application/json
     "url": "http://localhost:8795",
     "message": "I will crush you!"
 }
+
+###
+
+GET http://localhost:9876/api/game/fire?cell=A2
