@@ -32,10 +32,9 @@ public class Launcher {
 
         MyHandler.attach(server,
             "/api/game/start",
-            MyHandler.Method.POST,
+            HttpMethod.POST,
             GameDefinition.class,
-            sgb -> MyHandler
-                .MyResponseHandler
+            sgb -> MyResponseHandler
                 .json(202, manager.createGame(sgb))
         );
 
