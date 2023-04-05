@@ -1,6 +1,8 @@
 package fr.lernejo.navy_battle;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import fr.lernejo.navy_battle.pojo.FireConsequence;
+import fr.lernejo.navy_battle.pojo.FireData;
 import fr.lernejo.navy_battle.pojo.GameDefinition;
 
 import java.io.IOException;
@@ -72,5 +74,25 @@ public class Utils {
             .POST(HttpRequest.BodyPublishers.ofString(data))
             .build();
         httpClient.send(request, HttpResponse.BodyHandlers.discarding());
+    }
+
+    void fireAtCell(int xPos, int yPos,String remoteUrl, HttpClient httpClient, OpponentCellState[][] opponentBoard ) {
+        String cell = convertPosToCell(xPos, yPos);
+        HttpRequest request = getFireRequest(cell, remoteUrl);
+        try {
+            String body = httpClient.send(request, HttpResponse.BodyHandlers.ofString()).body();
+            ObjectMapper mapper = new ObjectMapper();
+            FireData data = mapper.readValue(body, FireData.class);
+            if (data.consequence() == FireConsequence.HIT || data.consequence() == FireConsequence.SUNK) {
+                opponentBoard[xPos][yPos] = OpponentCellState.Hit;
+            } else {
+                opponentBoard[xPos][yPos] = OpponentCellState.Nothing;
+            }
+            if (!data.shipLeft()) {
+                System.out.println("J'ai gagné");
+            }
+        } catch (IOException | InterruptedException e) {
+            throw new RuntimeException(e);
+        }
     }
 }

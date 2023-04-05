@@ -1,14 +1,10 @@
 package fr.lernejo.navy_battle;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import fr.lernejo.navy_battle.pojo.FireConsequence;
-import fr.lernejo.navy_battle.pojo.FireData;
 import fr.lernejo.navy_battle.pojo.GameDefinition;
 
 import java.io.IOException;
 import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
 import java.security.SecureRandom;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -29,7 +25,7 @@ public class GameManager {
     public GameManager(UUID id, String url, String remoteUrl) {
         this.id = id;
         this.url = url;
-        this.remoteUrl = new AtomicReference<>( remoteUrl);
+        this.remoteUrl = new AtomicReference<>(remoteUrl);
         this.httpClient = HttpClient.newHttpClient();
         for (int i = 0; i < WIDTH; i++) {
             for (int j = 0; j < HEIGHT; j++) {
@@ -45,7 +41,7 @@ public class GameManager {
     public void callStartGame() {
         playing.set(true);
         try {
-            utils.sendCallGameRequest(id,url,remoteUrl.get(),httpClient);
+            utils.sendCallGameRequest(id, url, remoteUrl.get(), httpClient);
         } catch (IOException | InterruptedException e) {
             throw new RuntimeException(e);
         }
@@ -62,28 +58,8 @@ public class GameManager {
         } while (opponentBoard[xPos][yPos] != OpponentCellState.Unknown);
 
 
-        fireAtCell(xPos, yPos);
-    }
-
-    void fireAtCell(int xPos, int yPos) {
         if (!playing.get()) return;
-        String cell = utils.convertPosToCell(xPos, yPos);
-        HttpRequest request = utils.getFireRequest(cell, remoteUrl.get());
-        try {
-            String body = httpClient.send(request, HttpResponse.BodyHandlers.ofString()).body();
-            ObjectMapper mapper = new ObjectMapper();
-            FireData data = mapper.readValue(body, FireData.class);
-            if (data.consequence() == FireConsequence.HIT || data.consequence() == FireConsequence.SUNK) {
-                opponentBoard[xPos][yPos] = OpponentCellState.Hit;
-            } else {
-                opponentBoard[xPos][yPos] = OpponentCellState.Nothing;
-            }
-            if (!data.shipLeft()) {
-                System.out.println("J'ai gagné");
-            }
-        } catch (IOException | InterruptedException e) {
-            throw new RuntimeException(e);
-        }
+        utils.fireAtCell(xPos, yPos, remoteUrl.get(), httpClient, opponentBoard);
     }
 
 
