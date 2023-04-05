@@ -6,7 +6,6 @@ import fr.lernejo.navy_battle.pojo.FireData;
 import fr.lernejo.navy_battle.pojo.GameDefinition;
 
 import java.io.IOException;
-import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
@@ -46,17 +45,7 @@ public class GameManager {
     public void callStartGame() {
         playing.set(true);
         try {
-            ObjectMapper mapper = new ObjectMapper();
-            String data;
-            data = mapper.writeValueAsString(new GameDefinition(
-                id.toString(), url, "I will crush you!"
-            ));
-            HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(remoteUrl.get() + "/api/game/start"))
-                .setHeader("Accept", "application/json")
-                .POST(HttpRequest.BodyPublishers.ofString(data))
-                .build();
-            httpClient.send(request, HttpResponse.BodyHandlers.discarding());
+            utils.sendCallGameRequest(id,url,remoteUrl.get(),httpClient);
         } catch (IOException | InterruptedException e) {
             throw new RuntimeException(e);
         }

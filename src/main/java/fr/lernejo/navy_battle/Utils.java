@@ -1,8 +1,15 @@
 package fr.lernejo.navy_battle;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import fr.lernejo.navy_battle.pojo.GameDefinition;
+
+import java.io.IOException;
 import java.net.URI;
+import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.security.SecureRandom;
+import java.util.UUID;
 
 public class Utils {
     public String convertPosToCell(int xPos, int yPos) {
@@ -51,5 +58,19 @@ public class Utils {
             .uri(URI.create(remoteUrl + "/api/game/fire?cell=" + cell))
             .GET()
             .build();
+    }
+
+    void sendCallGameRequest(UUID id, String url, String remoteUrl, HttpClient httpClient) throws IOException, InterruptedException {
+        ObjectMapper mapper = new ObjectMapper();
+        String data;
+        data = mapper.writeValueAsString(new GameDefinition(
+            id.toString(), url, "I will crush you!"
+        ));
+        HttpRequest request = HttpRequest.newBuilder()
+            .uri(URI.create(remoteUrl + "/api/game/start"))
+            .setHeader("Accept", "application/json")
+            .POST(HttpRequest.BodyPublishers.ofString(data))
+            .build();
+        httpClient.send(request, HttpResponse.BodyHandlers.discarding());
     }
 }
