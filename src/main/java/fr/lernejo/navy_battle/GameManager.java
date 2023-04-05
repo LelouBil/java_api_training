@@ -12,32 +12,26 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.security.SecureRandom;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 
 public class GameManager {
-
-
-    public static final int HEIGHT = 10;
-    public static final int WIDTH = 10;
+    private static final int HEIGHT = 10;
+    private static final int WIDTH = 10;
     private final UUID id;
     private final String url;
-    private String remoteUrl;
-
+    private final AtomicReference<String> remoteUrl;
     private final HttpClient httpClient;
-    private boolean playing;
-
-    private enum OpponentCellState {
-        Hit,
-        Nothing,
-        Unknown
-    }
+    private final AtomicBoolean playing = new AtomicBoolean(false);
 
     private final NavyBoard board = new NavyBoard(WIDTH, HEIGHT);
     private final OpponentCellState[][] opponentBoard = new OpponentCellState[WIDTH][HEIGHT];
+    private final Utils utils = new Utils();
 
     public GameManager(UUID id, String url, String remoteUrl) {
         this.id = id;
         this.url = url;
-        this.remoteUrl = remoteUrl;
+        this.remoteUrl = new AtomicReference<>( remoteUrl);
         this.httpClient = HttpClient.newHttpClient();
         for (int i = 0; i < WIDTH; i++) {
             for (int j = 0; j < HEIGHT; j++) {
@@ -50,8 +44,8 @@ public class GameManager {
         }
     }
 
-    private void callStartGame() {
-        playing = true;
+    public void callStartGame() {
+        playing.set(true);
         try {
             ObjectMapper mapper = new ObjectMapper();
             String data;
@@ -59,7 +53,7 @@ public class GameManager {
                 id.toString(), url, "I will crush you!"
             ));
             HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create(remoteUrl + "/api/game/start"))
+                .uri(URI.create(remoteUrl.get() + "/api/game/start"))
                 .setHeader("Accept", "application/json")
                 .setHeader("Content-Type", "application/json")
                 .POST(HttpRequest.BodyPublishers.ofString(data))
@@ -70,26 +64,26 @@ public class GameManager {
         }
     }
 
-
     public void doTurn() {
-        if(!playing) return;
+        if (!playing.get()) return;
         SecureRandom random = new SecureRandom();
         int xPos;
         int yPos;
         do {
-            xPos = random.nextInt(0,WIDTH);
-            yPos = random.nextInt(0,HEIGHT);
+            xPos = random.nextInt(0, WIDTH);
+            yPos = random.nextInt(0, HEIGHT);
         } while (opponentBoard[xPos][yPos] != OpponentCellState.Unknown);
 
 
         fireAtCell(xPos, yPos);
     }
 
-    private void fireAtCell(int xPos, int yPos) {
-        if(!playing) return;
-        String cell = convertPosToCell(xPos, yPos);
+    void fireAtCell(int xPos, int yPos) {
+        if (!playing.get()) return;
+        String cell = utils.convertPosToCell(xPos, yPos);
         HttpRequest request = HttpRequest
             .newBuilder()
+            .header("Accept", "application/json")
             .uri(URI.create(remoteUrl + "/api/game/fire?cell=" + cell))
             .GET()
             .build();
@@ -112,8 +106,8 @@ public class GameManager {
 
 
     public fr.lernejo.navy_battle.pojo.GameDefinition createGame(fr.lernejo.navy_battle.pojo.GameDefinition body) {
-        playing = true;
-        remoteUrl = body.url();
+        playing.set(true);
+        remoteUrl.set(body.url());
         return new GameDefinition(id.toString(), url, "May the best code win");
     }
 
@@ -122,56 +116,19 @@ public class GameManager {
             if (cell.length() < 2 || cell.length() > 3) throw new NumberFormatException();
             char letter = cell.charAt(0);
             String number = cell.substring(1);
-            int letterNumber = letterToNumber(letter);
+            int letterNumber = utils.letterToNumber(letter);
             int numberNumber = Integer.parseInt(number) - 1;
             FireConsequence target = board.target(letterNumber, numberNumber);
             System.out.println(board);
             if (!shipLeft()) {
                 System.out.println("J'ai perdu !");
-                this.playing = false;
+                this.playing.set(false);
             }
             return target;
         } catch (NumberFormatException e) {
-            throw new IllegalArgumentException("Invalid cell : " + cell);
+            throw new IllegalArgumentException("Invalid cell : " + cell, e);
         }
 
-    }
-
-    private int letterToNumber(char letter) throws NumberFormatException {
-        int letterNumber;
-        switch (letter) {
-            case 'A' -> letterNumber = 0;
-            case 'B' -> letterNumber = 1;
-            case 'C' -> letterNumber = 2;
-            case 'D' -> letterNumber = 3;
-            case 'E' -> letterNumber = 4;
-            case 'F' -> letterNumber = 5;
-            case 'G' -> letterNumber = 6;
-            case 'H' -> letterNumber = 7;
-            case 'I' -> letterNumber = 8;
-            case 'J' -> letterNumber = 9;
-            default -> throw new NumberFormatException();
-        }
-        return letterNumber;
-    }
-
-    private String convertPosToCell(int xPos, int yPos) {
-        char letter;
-        switch (xPos) {
-            case 0 -> letter = 'A';
-            case 1 -> letter = 'B';
-            case 2 -> letter = 'C';
-            case 3 -> letter = 'D';
-            case 4 -> letter = 'E';
-            case 5 -> letter = 'F';
-            case 6 -> letter = 'G';
-            case 7 -> letter = 'H';
-            case 8 -> letter = 'I';
-            case 9 -> letter = 'J';
-            default -> throw new NumberFormatException();
-        }
-
-        return letter + String.valueOf(yPos + 1);
     }
 
     public boolean shipLeft() {

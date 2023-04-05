@@ -1,13 +1,14 @@
 package fr.lernejo.navy_battle;
 
 import java.util.Iterator;
+import java.util.concurrent.atomic.AtomicInteger;
 
 final class Boat {
     private final int size;
     private final int startX;
     private final int startY;
     private final Direction direction;
-    private int health;
+    private final AtomicInteger health;
 
 
     Boat(int size, int startX, int startY, Direction direction) {
@@ -15,7 +16,7 @@ final class Boat {
         this.startX = startX;
         this.startY = startY;
         this.direction = direction;
-        health = size;
+        health = new AtomicInteger(size);
     }
 
     @Override
@@ -28,7 +29,11 @@ final class Boat {
     }
 
     public int getHealth() {
-        return health;
+        return health.get();
+    }
+
+    public void decrementHealth(){
+        health.decrementAndGet();
     }
 
     public int getX() {
@@ -47,40 +52,15 @@ final class Boat {
 
 
     private Iterator<RenderedBoat> getRenderedBoatsIteratorInternal() {
-        return new Iterator<>() {
+        return new RenderedBoatIterator(this);
+    }
 
-            RenderedBoat previous = null;
-            int sizeCounter = 0;
+    public int getSize() {
+        return size;
+    }
 
-            @Override
-            public boolean hasNext() {
-                return sizeCounter < Boat.this.size;
-            }
-
-            @Override
-            public RenderedBoat next() {
-                if (previous == null) {
-                    previous = new RenderedBoat(Boat.this, Boat.this.startX, Boat.this.startY);
-                } else {
-                    int xStep = 0;
-                    int yStep = 0;
-                    switch (direction) {
-                        case Top -> yStep = 1;
-                        case Down -> yStep = -1;
-                        case Right -> xStep = 1;
-                        case Left -> xStep = -1;
-                    }
-
-                    previous = new RenderedBoat(
-                        Boat.this,
-                        this.previous.x + xStep,
-                        this.previous.y + yStep
-                    );
-                }
-                sizeCounter++;
-                return previous;
-            }
-        };
+    public Direction getDirection() {
+        return direction;
     }
 
 
@@ -92,46 +72,4 @@ final class Boat {
 
     }
 
-    static class RenderedBoat {
-        private Boat boat;
-        private final int x;
-        private final int y;
-        private boolean destroyed = false;
-
-        RenderedBoat(Boat boat, int x, int y) {
-            this.boat = boat;
-            this.x = x;
-            this.y = y;
-        }
-
-        public Boat getBoat() {
-            return boat;
-        }
-
-        public int getX() {
-            return x;
-        }
-
-        public int getY() {
-            return y;
-        }
-
-        public void destroyRender() {
-            if(destroyed){
-                System.err.printf("Trying to destroy already destroyed render, pos (%d;%d) of boat %s%n", x,y,boat.toString());
-                return;
-            }
-            boat.health--;
-            this.destroyed = true;
-        }
-
-        public boolean isDestroyed() {
-            return destroyed;
-        }
-
-        @Override
-        public String toString() {
-            return destroyed ? "X" : "M";
-        }
-    }
 }

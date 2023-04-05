@@ -41,7 +41,7 @@ public class MyHandler<T> implements HttpHandler {
                 e.printStackTrace();
                 exchange.sendResponseHeaders(400, 0);
                 exchange.getResponseBody().close();
-            } catch (RuntimeException exception){
+            } catch (RuntimeException exception) {
                 exception.printStackTrace();
             }
         } else {
@@ -52,21 +52,12 @@ public class MyHandler<T> implements HttpHandler {
 
     private void computeHandler(HttpExchange exchange, String data) throws IOException {
         MyResponseHandler resp;
-        System.out.printf("%s %s?%s: %s%n", httpMethod.name(), path, exchange.getRequestURI().getQuery(),  data);
+        System.out.printf("%s %s?%s: %s%n", httpMethod.name(), path, exchange.getRequestURI().getQuery(), data);
         if (tClass == null) {
-            Map<String, String> query =
-                Arrays.stream(exchange
-                        .getRequestURI()
-                        .getQuery()
-                        .split("&")
-                    )
-                    .map(e -> e.split("="))
-                    .collect(Collectors.toMap(e -> e[0], e -> e[1])
-                    );
+            Map<String, String> query = getQueryMap(exchange);
             //noinspection unchecked
             resp = handler.apply((T) query);
-        }
-        else if (tClass == String.class) {
+        } else if (tClass == String.class) {
             //noinspection unchecked
             resp = handler.apply((T) data);
         } else {
@@ -77,6 +68,17 @@ public class MyHandler<T> implements HttpHandler {
         }
         sendResponse(exchange, resp);
         resp.afterRequest();
+    }
+
+    private static Map<String, String> getQueryMap(HttpExchange exchange) {
+        return Arrays.stream(exchange
+                .getRequestURI()
+                .getQuery()
+                .split("&")
+            )
+            .map(e -> e.split("="))
+            .collect(Collectors.toMap(e -> e[0], e -> e[1])
+            );
     }
 
     private static void sendResponse(HttpExchange exchange, MyResponseHandler resp) throws IOException {

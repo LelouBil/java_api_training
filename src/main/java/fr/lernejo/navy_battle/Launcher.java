@@ -39,6 +39,13 @@ public class Launcher {
                 .json(202, manager.createGame(sgb), manager::doTurn)
         );
 
+        addFireHandler(server, manager);
+
+
+        server.start();
+    }
+
+    private static void addFireHandler(HttpServer server, GameManager manager) {
         MyHandler.get(server,
             "/api/game/fire",
             query -> {
@@ -47,18 +54,15 @@ public class Launcher {
                     try {
                         FireConsequence consequence = manager.handleFire(cell);
                         return MyResponseHandler.json(200, new FireData(consequence, manager.shipLeft()), manager::doTurn);
-                    } catch (IllegalArgumentException exception){
+                    } catch (IllegalArgumentException exception) {
                         exception.printStackTrace();
-                        return MyResponseHandler.plain(400,"",null);
+                        return MyResponseHandler.plain(400, "", null);
                     }
                 } else {
-                    return MyResponseHandler.plain(400, "",null);
+                    return MyResponseHandler.plain(400, "", null);
                 }
             }
         );
-
-
-        server.start();
     }
 
     private static HttpServer createServer(int port) throws IOException {
