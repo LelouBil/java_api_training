@@ -16,14 +16,13 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
 public class GameManager {
-    private static final int HEIGHT = 10;
-    private static final int WIDTH = 10;
+    private final int HEIGHT = 10;
+    private final int WIDTH = 10;
     private final UUID id;
     private final String url;
     private final AtomicReference<String> remoteUrl;
     private final HttpClient httpClient;
     private final AtomicBoolean playing = new AtomicBoolean(false);
-
     private final NavyBoard board = new NavyBoard(WIDTH, HEIGHT);
     private final OpponentCellState[][] opponentBoard = new OpponentCellState[WIDTH][HEIGHT];
     private final Utils utils = new Utils();
@@ -55,7 +54,6 @@ public class GameManager {
             HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(remoteUrl.get() + "/api/game/start"))
                 .setHeader("Accept", "application/json")
-                .setHeader("Content-Type", "application/json")
                 .POST(HttpRequest.BodyPublishers.ofString(data))
                 .build();
             httpClient.send(request, HttpResponse.BodyHandlers.discarding());
@@ -81,12 +79,7 @@ public class GameManager {
     void fireAtCell(int xPos, int yPos) {
         if (!playing.get()) return;
         String cell = utils.convertPosToCell(xPos, yPos);
-        HttpRequest request = HttpRequest
-            .newBuilder()
-            .header("Accept", "application/json")
-            .uri(URI.create(remoteUrl + "/api/game/fire?cell=" + cell))
-            .GET()
-            .build();
+        HttpRequest request = utils.getFireRequest(cell, remoteUrl.get());
         try {
             String body = httpClient.send(request, HttpResponse.BodyHandlers.ofString()).body();
             ObjectMapper mapper = new ObjectMapper();

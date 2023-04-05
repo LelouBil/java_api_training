@@ -24,22 +24,26 @@ class RenderedBoatIterator implements Iterator<RenderedBoat> {
         if (previous.get() == null) {
             previous.set(new RenderedBoat(boat, boat.getX(), boat.getY()));
         } else {
-            int xStep = 0;
-            int yStep = 0;
-            switch (boat.getDirection()) {
-                case Top -> yStep = 1;
-                case Down -> yStep = -1;
-                case Right -> xStep = 1;
-                case Left -> xStep = -1;
-            }
-
-            previous.set(new RenderedBoat(
-                boat,
-                this.previous.get().getX() + xStep,
-                this.previous.get().getY() + yStep
-            ));
+            movePrevious();
         }
         sizeCounter.incrementAndGet();
         return previous.get();
+    }
+
+    private void movePrevious() {
+        int xStep = 0;
+        int yStep = 0;
+        switch (boat.getDirection()) {
+            case Top -> yStep = 1;
+            case Down -> yStep = -1;
+            case Right -> xStep = 1;
+            case Left -> xStep = -1;
+        }
+
+        previous.set(new RenderedBoat(
+            boat,
+            this.previous.get().getX() + xStep,
+            this.previous.get().getY() + yStep
+        ));
     }
 }

@@ -1,5 +1,7 @@
 package fr.lernejo.navy_battle;
 
+import java.net.URI;
+import java.net.http.HttpRequest;
 import java.security.SecureRandom;
 
 public class Utils {
@@ -29,14 +31,25 @@ public class Utils {
             yPadding = size - 1;
         }
 
-        int minX = xPadding;
-        int maxX = width - xPadding;
+        return getBoat(height, width, size, random, dir, xPadding, yPadding);
+    }
 
-        int minY = yPadding;
-        int maxY = height - yPadding;
+    private static Boat getBoat(int height, int width, int size, SecureRandom random, Boat.Direction dir, int minX, int minY) {
+        int maxX = width - minX;
+
+        int maxY = height - minY;
 
         int xPos = random.nextInt(minX, maxX);
         int yPos = random.nextInt(minY, maxY);
         return new Boat(size, xPos, yPos, dir);
+    }
+
+    HttpRequest getFireRequest(String cell, String remoteUrl) {
+        return HttpRequest
+            .newBuilder()
+            .header("Accept", "application/json")
+            .uri(URI.create(remoteUrl + "/api/game/fire?cell=" + cell))
+            .GET()
+            .build();
     }
 }

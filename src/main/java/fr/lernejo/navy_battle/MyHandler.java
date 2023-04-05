@@ -82,9 +82,9 @@ public class MyHandler<T> implements HttpHandler {
     }
 
     private static void sendResponse(HttpExchange exchange, MyResponseHandler resp) throws IOException {
-        exchange.sendResponseHeaders(resp.getStatus(), resp.getBody().length());
         Headers responseHeaders = exchange.getResponseHeaders();
         responseHeaders.add("Content-Type", resp.getContentType());
+        exchange.sendResponseHeaders(resp.getStatus(), resp.getBody().length());
         try (OutputStream os = exchange.getResponseBody()) {
             os.write(resp.getBody().getBytes());
         }
