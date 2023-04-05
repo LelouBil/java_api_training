@@ -22,8 +22,8 @@ public class GameManager {
     private final String url;
     private String remoteUrl;
 
-    @SuppressWarnings("FieldCanBeLocal")
     private final HttpClient httpClient;
+    private boolean playing;
 
     private enum OpponentCellState {
         Hit,
@@ -51,6 +51,7 @@ public class GameManager {
     }
 
     private void callStartGame() {
+        playing = true;
         try {
             ObjectMapper mapper = new ObjectMapper();
             String data;
@@ -70,13 +71,14 @@ public class GameManager {
     }
 
 
-    private void doTurn() {
+    public void doTurn() {
+        if(!playing) return;
         SecureRandom random = new SecureRandom();
         int xPos;
         int yPos;
         do {
-            xPos = random.nextInt(WIDTH);
-            yPos = random.nextInt(HEIGHT);
+            xPos = random.nextInt(0,WIDTH);
+            yPos = random.nextInt(0,HEIGHT);
         } while (opponentBoard[xPos][yPos] != OpponentCellState.Unknown);
 
 
@@ -84,6 +86,7 @@ public class GameManager {
     }
 
     private void fireAtCell(int xPos, int yPos) {
+        if(!playing) return;
         String cell = convertPosToCell(xPos, yPos);
         HttpRequest request = HttpRequest
             .newBuilder()
@@ -107,31 +110,26 @@ public class GameManager {
         }
     }
 
-    private String convertPosToCell(int xPos, int yPos) {
-        return null; //todo
-    }
-
 
     public fr.lernejo.navy_battle.pojo.GameDefinition createGame(fr.lernejo.navy_battle.pojo.GameDefinition body) {
+        playing = true;
         remoteUrl = body.url();
-        //todo fire back after request end
-
         return new GameDefinition(id.toString(), url, "May the best code win");
     }
 
     public FireConsequence handleFire(String cell) {
-
         try {
-            if (cell.length() != 2) throw new NumberFormatException();
+            if (cell.length() < 2 || cell.length() > 3) throw new NumberFormatException();
             char letter = cell.charAt(0);
-            char number = cell.charAt(1);
+            String number = cell.substring(1);
             int letterNumber = letterToNumber(letter);
-            int numberNumber = Integer.parseInt(String.valueOf(number)) - 1;
+            int numberNumber = Integer.parseInt(number) - 1;
             FireConsequence target = board.target(letterNumber, numberNumber);
+            System.out.println(board);
             if (!shipLeft()) {
                 System.out.println("J'ai perdu !");
+                this.playing = false;
             }
-            //todo fire back
             return target;
         } catch (NumberFormatException e) {
             throw new IllegalArgumentException("Invalid cell : " + cell);
@@ -148,9 +146,32 @@ public class GameManager {
             case 'D' -> letterNumber = 3;
             case 'E' -> letterNumber = 4;
             case 'F' -> letterNumber = 5;
+            case 'G' -> letterNumber = 6;
+            case 'H' -> letterNumber = 7;
+            case 'I' -> letterNumber = 8;
+            case 'J' -> letterNumber = 9;
             default -> throw new NumberFormatException();
         }
         return letterNumber;
+    }
+
+    private String convertPosToCell(int xPos, int yPos) {
+        char letter;
+        switch (xPos) {
+            case 0 -> letter = 'A';
+            case 1 -> letter = 'B';
+            case 2 -> letter = 'C';
+            case 3 -> letter = 'D';
+            case 4 -> letter = 'E';
+            case 5 -> letter = 'F';
+            case 6 -> letter = 'G';
+            case 7 -> letter = 'H';
+            case 8 -> letter = 'I';
+            case 9 -> letter = 'J';
+            default -> throw new NumberFormatException();
+        }
+
+        return letter + String.valueOf(yPos + 1);
     }
 
     public boolean shipLeft() {

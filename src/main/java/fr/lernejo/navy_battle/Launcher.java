@@ -36,7 +36,7 @@ public class Launcher {
             "/api/game/start",
             GameDefinition.class,
             sgb -> MyResponseHandler
-                .json(202, manager.createGame(sgb))
+                .json(202, manager.createGame(sgb), manager::doTurn)
         );
 
         MyHandler.get(server,
@@ -46,12 +46,13 @@ public class Launcher {
                 if (cell != null) {
                     try {
                         FireConsequence consequence = manager.handleFire(cell);
-                        return MyResponseHandler.json(200, new FireData(consequence, manager.shipLeft()));
-                    } catch (IllegalArgumentException ignored){
-                        return MyResponseHandler.plain(400,"");
+                        return MyResponseHandler.json(200, new FireData(consequence, manager.shipLeft()), manager::doTurn);
+                    } catch (IllegalArgumentException exception){
+                        exception.printStackTrace();
+                        return MyResponseHandler.plain(400,"",null);
                     }
                 } else {
-                    return MyResponseHandler.plain(400, "");
+                    return MyResponseHandler.plain(400, "",null);
                 }
             }
         );

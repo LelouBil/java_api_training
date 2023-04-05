@@ -12,7 +12,6 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -42,6 +41,8 @@ public class MyHandler<T> implements HttpHandler {
                 e.printStackTrace();
                 exchange.sendResponseHeaders(400, 0);
                 exchange.getResponseBody().close();
+            } catch (RuntimeException exception){
+                exception.printStackTrace();
             }
         } else {
             exchange.sendResponseHeaders(405, 0);
@@ -75,6 +76,7 @@ public class MyHandler<T> implements HttpHandler {
             resp = handler.apply(req);
         }
         sendResponse(exchange, resp);
+        resp.afterRequest();
     }
 
     private static void sendResponse(HttpExchange exchange, MyResponseHandler resp) throws IOException {
